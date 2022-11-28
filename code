@@ -1,0 +1,140 @@
+#создай тут фоторедактор Easy Editor!
+import  os
+from PIL import Image
+from PIL import ImageFilter
+from PyQt5. QtCore import Qt 
+from PyQt5. QtGui import QPixmap
+from PyQt5.QtWidgets import (QApplication 
+    ,QWidget 
+    ,QPushButton 
+    ,QLabel 
+    ,QListWidget  
+    ,QHBoxLayout 
+    ,QVBoxLayout 
+    ,QFileDialog
+)
+
+app = QApplication([])
+win = QWidget()
+win.setWindowTitle('Easy Editor')
+win.resize(700, 400)
+
+
+b_left = QPushButton('Лево')
+b_right = QPushButton('Право')
+b_mir = QPushButton('Зеркало')
+b_rezk = QPushButton('Резкость')
+b_chb = QPushButton('Ч/Б')
+b_papka = QPushButton('Папка')
+
+list_pap = QListWidget()
+
+image_label = QLabel('Картинка')
+
+#Layout
+total_layout = QHBoxLayout()
+
+#Button
+layout_b = QHBoxLayout()
+
+layout_b.addWidget(b_left)
+layout_b.addWidget(b_right)
+layout_b.addWidget(b_mir)
+layout_b.addWidget(b_rezk)
+layout_b.addWidget(b_chb)
+
+#List
+list_layout = QVBoxLayout()
+
+list_layout.addWidget(b_papka)
+list_layout.addWidget(list_pap)
+
+
+#Label
+layout_label =  QVBoxLayout()
+layout_label.addWidget(image_label)
+
+#total
+layout_label.addLayout(layout_b)
+total_layout.addLayout(list_layout, stretch = 1)
+total_layout.addLayout(layout_label, stretch = 3)
+
+
+win.setLayout(total_layout)
+
+win.show()
+
+workdir = ''
+
+def filter(files, extensions):
+    result = []
+    for filename in files:
+        for extension in extensions:
+            if filename.endswith(extension):
+                result.append(filename)
+    return result
+
+def chooseWorkdir():
+    global workdir
+    workdir =  QFileDialog.getExistingDirectory()
+
+def showFilenameList():
+    extensions = ['.jpg', '.png', '.jpeg', '.gif', '.bmp']
+    chooseWorkdir()
+    filenames = filter(os.listdir(workdir),extensions)
+    list_pap.clear()
+    for filename in filenames:
+        list_pap.addItem(filename)
+
+class ImageProcessor():
+    def __init__(self):
+        self.image = None
+        self.dir = None
+        self.filename = None
+        self.save_dir = 'Modified/'
+
+    def loadImage(self, dir, filename):
+        self.dir = dir
+        self.filename = filename
+        image_path = os.path.join(dir, filename)
+        self.image = Image.open(image_path)
+
+    def saveImage(self):
+        path = os.path.join(workdir, self.save_dir)
+        if not(os.path.exsist(path) or os.path.isdir(path)):
+            os.mkdir(path)
+        fullname = os.path.join(path, self.filename)
+
+        self.image.save(fullname)
+
+    def do_bw(self):
+        self.image = self.image.convert("L")
+        self.saveImage()
+        image_path = os.path.join(workdir, self.save_dir, self.filename )
+        self.showImage(image_path)
+
+    def showImage(self, path):
+        image_label.hide()
+        pixmapimage = QPixmap(path)
+        w, h = image_label.width(), image_label.height()
+        pixmapimage = pixmapimage.scaled(w, h, Qt.KeepAspectRatio)
+        image_label.setPixmap(pixmapimage)
+        image_label.show()
+        
+
+workimage = ImageProcessor()
+
+def showChosenImage():
+    if list_pap.currentRow() >= 0:
+        filename = list_pap.currentItem().text()
+        workimage.loadImage(workdir, filename)
+        image_path = os.path.join(workimage.dir, workimage.filename)
+        workimage.showImage(image_path)
+
+list_pap.currentRowChanged.connect(showChosenImage)
+
+b_papka.clicked.connect(showFilenameList)
+#b_chb.clicked.connect(do_bw)
+
+
+app.exec()
